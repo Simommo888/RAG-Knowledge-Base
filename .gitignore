@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
+data/
+data/*.db
+data/*.db-*
+output/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local

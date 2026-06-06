@@ -1,0 +1,2282 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG Knowledge Base</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --surface-2: #f8fafc;
+        --surface-3: #f3f6fb;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --soft: #94a3b8;
+        --line: #e2e8f0;
+        --line-strong: #cbd5e1;
+        --nav: #ffffff;
+        --nav-2: #eef4ff;
+        --blue: #2563eb;
+        --blue-soft: #eff6ff;
+        --green: #059669;
+        --green-soft: #ecfdf5;
+        --amber: #d97706;
+        --amber-soft: #fffbeb;
+        --red: #dc2626;
+        --red-soft: #fef2f2;
+        --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+        --sidebar-width: 240px;
+        --right-rail-width: 300px;
+        --topbar-height: 56px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      .app {
+        min-height: 100vh;
+      }
+
+      .global-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: grid;
+        grid-template-columns: var(--sidebar-width) minmax(280px, 420px) minmax(0, 1fr);
+        align-items: center;
+        height: var(--topbar-height);
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(14px);
+      }
+
+      .global-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 100%;
+        padding: 0 20px;
+        border-right: 1px solid var(--line);
+      }
+
+      .global-brand h1 {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.1;
+      }
+
+      .global-search {
+        display: flex;
+        align-items: center;
+        height: 100%;
+        padding: 0 20px;
+      }
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--muted);
+        padding: 0 10px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .search-box input {
+        min-height: 0;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+        color: var(--ink);
+      }
+
+      .search-key {
+        margin-left: auto;
+        border-radius: 6px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 2px 6px;
+      }
+
+      .global-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        height: 100%;
+        padding: 0 18px;
+      }
+
+      .icon-btn {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: #64748b;
+      }
+
+      .avatar {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+        min-height: calc(100vh - var(--topbar-height));
+      }
+
+      .sidebar {
+        position: sticky;
+        top: var(--topbar-height);
+        height: calc(100vh - var(--topbar-height));
+        overflow: auto;
+        background: var(--nav);
+        color: var(--ink);
+        padding: 18px 16px 18px;
+        border-right: 1px solid var(--line);
+      }
+
+      .brand {
+        display: none;
+      }
+
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--blue);
+        color: #ffffff;
+        font-weight: 900;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.2;
+      }
+
+      .brand p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .nav-section {
+        margin: 18px 0;
+      }
+
+      .nav-title {
+        margin: 0 8px 10px;
+        color: #0f172a;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .nav-link {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        min-height: 36px;
+        margin: 4px 0;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #334155;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        background: var(--nav-2);
+        color: #2563eb;
+      }
+
+      .nav-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        color: currentColor;
+      }
+
+      .nav-icon svg,
+      .top-icon {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .nav-pill {
+        display: none;
+      }
+
+      .sidebar-card {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .sidebar-card h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+      }
+
+      .sidebar-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        word-break: break-all;
+      }
+
+      .workspace {
+        min-width: 0;
+        padding: 20px 26px 48px;
+      }
+
+      .topbar {
+        display: block;
+        max-width: none;
+        margin: 0 0 18px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .eyebrow::after {
+        content: "› 工作台";
+        margin-left: 10px;
+        color: #94a3b8;
+      }
+
+      .topbar h2 {
+        margin: 0;
+        font-size: clamp(23px, 2.2vw, 32px);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+
+      .topbar p {
+        max-width: 780px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .top-actions {
+        display: none;
+      }
+
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 7px 11px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--green);
+        box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
+      }
+
+      .page-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 948px) var(--right-rail-width);
+        justify-content: center;
+        gap: 28px;
+        align-items: start;
+        padding: 0;
+      }
+
+      .page-grid > aside {
+        position: sticky;
+        top: 96px;
+        max-height: calc(100vh - 112px);
+        overflow: auto;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 18px 0;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 17px;
+        letter-spacing: -0.01em;
+      }
+
+      .panel-subtitle {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .composer {
+        padding: 18px;
+      }
+
+      .ask-composer {
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 14px;
+      }
+
+      .question-box {
+        width: 100%;
+        min-height: 58px;
+        resize: vertical;
+        border: 0;
+        border-radius: 0;
+        background: #ffffff;
+        color: var(--ink);
+        padding: 4px 4px 10px 34px;
+        line-height: 1.65;
+        outline: none;
+      }
+
+      .question-box:focus {
+        box-shadow: none;
+      }
+
+      .composer-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .prompt-mark {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        color: #0f172a;
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .ask-footer {
+        margin-top: 8px;
+      }
+
+      .send-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: auto;
+      }
+
+      .char-count {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 800;
+        padding: 9px 13px;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      }
+
+      .btn:hover {
+        transform: none;
+        border-color: #aeb6c2;
+      }
+
+      .btn:disabled {
+        cursor: wait;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .btn-primary {
+        background: #111111;
+        color: #ffffff;
+        box-shadow: none;
+      }
+
+      .btn-secondary {
+        border: 1px solid var(--line-strong);
+        background: #ffffff;
+        color: var(--ink);
+      }
+
+      .btn-soft {
+        border: 1px solid #c7d2fe;
+        background: var(--blue-soft);
+        color: #1d4ed8;
+      }
+
+      .compact-note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .controls {
+        display: grid;
+        gap: 13px;
+        padding: 16px 18px 18px;
+      }
+
+      .control-group label,
+      .switch-row label {
+        display: block;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      select,
+      input[type="number"],
+      input[type="text"] {
+        width: 100%;
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--ink);
+        padding: 9px 11px;
+        outline: none;
+      }
+
+      select:focus,
+      input:focus {
+        border-color: rgba(37, 99, 235, 0.65);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface-2);
+      }
+
+      .segment {
+        min-height: 34px;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .segment.active {
+        background: #ffffff;
+        color: #111111;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      }
+
+      .switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .switch-row label {
+        margin: 0;
+      }
+
+      .switch-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--blue);
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        max-width: none;
+        margin: 18px 0 20px;
+        padding: 0;
+      }
+
+      .metric {
+        min-height: 96px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 15px;
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .metric-icon {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #eef4ff;
+        color: #2563eb;
+      }
+
+      .metric-icon svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        margin-top: 12px;
+        font-size: 26px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .metric-foot {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+        word-break: break-word;
+      }
+
+      .answer-panel {
+        display: block;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .result-grid .source-list {
+        padding-top: 14px;
+      }
+
+      .answer-body {
+        margin: 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fafafa;
+        color: #111827;
+        padding: 18px;
+        white-space: pre-wrap;
+        line-height: 1.75;
+      }
+
+      .warning {
+        margin: 12px 18px 0;
+        border: 1px solid #fed7aa;
+        border-radius: 8px;
+        background: var(--amber-soft);
+        color: #9a3412;
+        padding: 11px 12px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .message {
+        display: none;
+        margin-bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--muted);
+        padding: 12px 14px;
+        line-height: 1.5;
+      }
+
+      .message.visible {
+        display: block;
+      }
+
+      .message.error {
+        border-color: #fecaca;
+        background: var(--red-soft);
+        color: #991b1b;
+      }
+
+      .message.success {
+        border-color: #bbf7d0;
+        background: var(--green-soft);
+        color: #047857;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 4px 9px;
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: #047857;
+      }
+
+      .badge.amber {
+        background: var(--amber-soft);
+        color: #b45309;
+      }
+
+      .badge.gray {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .source-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 14px;
+      }
+
+      .source-card:hover,
+      .metric:hover,
+      .panel:hover {
+        border-color: #d1d5db;
+      }
+
+      .source-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .source-title {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.35;
+      }
+
+      .source-path {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        word-break: break-all;
+      }
+
+      .source-heading {
+        margin-top: 9px;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .source-content {
+        max-height: 190px;
+        margin-top: 10px;
+        overflow: auto;
+        color: #334155;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .score-bar {
+        width: 100%;
+        height: 7px;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e2e8f0;
+      }
+
+      .score-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: #2563eb;
+      }
+
+      .score-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .mini-list {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+      }
+
+      .mini-item {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #ffffff;
+        padding: 12px;
+      }
+
+      .toc-card {
+        border: 0;
+        border-left: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0 0 0 18px;
+      }
+
+      .toc-title {
+        margin: 0 0 10px;
+        color: #111827;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .toc-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .toc-list a {
+        color: var(--muted);
+        font-size: 13px;
+        text-decoration: none;
+      }
+
+      .toc-list a:hover {
+        color: var(--blue);
+      }
+
+      .mini-item strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .mini-item span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .distribution {
+        padding: 0 18px 18px;
+      }
+
+      .dist-row {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr) 48px;
+        gap: 8px;
+        align-items: center;
+        margin-top: 9px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .dist-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e2e8f0;
+      }
+
+      .dist-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: #0ea5e9;
+      }
+
+      .empty {
+        padding: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .copy-btn {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #ffffff;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 5px 8px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .content-editor {
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 12px;
+        line-height: 1.65;
+        outline: none;
+      }
+
+      .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .doc-table th,
+      .doc-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .doc-table th {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        padding: 0 18px 18px;
+      }
+
+      .stream-output {
+        min-height: 110px;
+        margin: 12px 18px 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fafafa;
+        color: #111827;
+        padding: 14px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 1180px) {
+        .shell,
+        .global-header {
+          grid-template-columns: 1fr;
+        }
+
+        .global-header {
+          height: auto;
+        }
+
+        .global-brand {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          min-height: 56px;
+        }
+
+        .global-search,
+        .global-actions {
+          display: none;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 14px 16px;
+        }
+
+        .brand {
+          padding-bottom: 12px;
+        }
+
+        .sidebar .nav-section + .nav-section {
+          display: none;
+        }
+
+        .nav-section {
+          margin: 12px 0 0;
+        }
+
+        .nav-title {
+          display: none;
+        }
+
+        .nav-section nav,
+        nav.nav-section {
+          overflow: auto;
+        }
+
+        .sidebar nav {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .nav-link {
+          flex: 0 0 auto;
+          min-height: 34px;
+          white-space: nowrap;
+        }
+
+        .nav-pill {
+          display: none;
+        }
+
+        .workspace {
+          padding: 0 16px 42px;
+        }
+
+        .topbar {
+          position: static;
+          margin: 0 0 18px;
+          padding: 18px 0 0;
+          display: block;
+        }
+
+        .page-grid {
+          grid-template-columns: 1fr;
+          max-width: 920px;
+          margin: 0 auto;
+        }
+
+        .page-grid > aside {
+          position: static;
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .workspace {
+          padding: 16px;
+        }
+
+        .topbar,
+        .composer-footer,
+        .source-top {
+          display: block;
+        }
+
+        .top-actions,
+        .button-row {
+          margin-top: 12px;
+          justify-content: flex-start;
+        }
+
+        .ask-footer {
+          display: grid;
+          gap: 12px;
+        }
+
+        .ask-footer .button-row {
+          margin-top: 0;
+        }
+
+        .send-area {
+          width: 100%;
+          margin: 0;
+          justify-content: space-between;
+        }
+
+        .question-box {
+          min-height: 112px;
+        }
+
+        .metric-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          padding: 0;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .segmented {
+          grid-template-columns: 1fr;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="global-header" aria-label="RAG 顶部导航">
+        <div class="global-brand">
+          <div class="brand-mark">R</div>
+          <div>
+            <h1>RAG Knowledge Base</h1>
+          </div>
+        </div>
+        <div class="global-search">
+          <div class="search-box">
+            <svg class="top-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+            <input id="globalSearch" type="text" placeholder="Search..." onkeydown="if(event.key==='Enter'){document.getElementById('question').value=this.value; ask();}" />
+            <span class="search-key">⌘ K</span>
+          </div>
+        </div>
+        <div class="global-actions">
+          <span class="status-chip"><span class="dot"></span><span id="healthText">服务运行中</span></span>
+          <span class="status-chip" id="vectorStoreChip">Chroma ✓ Connected</span>
+          <span class="status-chip">Embedding ✓ OK</span>
+          <button class="icon-btn" type="button" aria-label="Theme">
+            <svg class="top-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+          </button>
+          <span class="avatar">AK</span>
+          <button class="icon-btn" type="button" aria-label="More">
+            <svg class="top-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">R</div>
+          <div>
+            <h1>RAG Knowledge Base</h1>
+            <p>独立知识库问答系统</p>
+          </div>
+        </div>
+
+        <nav class="nav-section" aria-label="主导航">
+          <p class="nav-title">开始</p>
+          <a class="nav-link active" href="#ask"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 9h8M8 13h5"></path></svg></span>Ask <span class="nav-pill">01</span></a>
+          <p class="nav-title">知识库</p>
+          <a class="nav-link" href="#knowledge"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4v15.5A2.5 2.5 0 0 1 6.5 22H20V6a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 6.5"></path></svg></span>Knowledge <span class="nav-pill">02</span></a>
+          <a class="nav-link" href="#semantic"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span>Semantic Search <span class="nav-pill">03</span></a>
+          <a class="nav-link" href="#sources"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M8 13h8M8 17h5"></path></svg></span>Sources <span class="nav-pill">04</span></a>
+          <a class="nav-link" href="#history"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6M12 7v5l3 2"></path></svg></span>History <span class="nav-pill">05</span></a>
+          <p class="nav-title">系统</p>
+          <a class="nav-link" href="#api-settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5z"></path><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 3.6 15a1.7 1.7 0 0 0-.6-1A1.7 1.7 0 0 0 1.9 13H2a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 3.6 8a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8 3.6a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.6 1.9V2a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 3.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"></path></svg></span>Settings</a>
+        </nav>
+
+        <div class="nav-section">
+          <p class="nav-title">Retrieval</p>
+          <div class="sidebar-card">
+            <h2>RAG Knowledge Base</h2>
+            <p>v0.1.0</p>
+            <p style="margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px">本地模式<br /><span id="sideKbRoot">加载中...</span></p>
+            <p style="margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px">文档与帮助<br /><a href="#knowledge">查看使用指南 ↗</a></p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="page-grid">
+          <div>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Ask</p>
+            <h2>知识库问答工作台</h2>
+            <p>
+              基于你的知识库进行问答，查看来源证据与检索详情。
+            </p>
+          </div>
+        </header>
+
+        <div id="message" class="message"></div>
+
+            <section class="panel" id="ask">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">提问</h3>
+                  <p class="panel-subtitle">输入问题后按 Ctrl + Enter，可直接向知识库提问。没有 API Key 时会自动使用本地摘录式回答。</p>
+                </div>
+                <span class="badge gray" id="modeBadge">hybrid</span>
+              </div>
+              <div class="composer">
+                <div class="ask-composer">
+                  <span class="prompt-mark">›_</span>
+                <textarea
+                  id="question"
+                  class="question-box"
+                  placeholder="请输入你的问题，或使用自然语言提问..."
+                >AgentOS 和 RAG 知识库分别负责什么？当前知识库问答已经实现了哪些能力？</textarea>
+                <div class="composer-footer ask-footer">
+                  <div class="button-row">
+                    <button class="btn btn-secondary" type="button" onclick="document.getElementById('question').value='RAG 知识库现在支持哪些能力？'">推荐问题</button>
+                    <button class="btn btn-secondary" id="searchBtn" type="button" onclick="searchOnly()">检索设置</button>
+                    <button class="btn btn-secondary" type="button" onclick="setRetrievalMode('hybrid')">混合检索</button>
+                  </div>
+                  <div class="send-area">
+                    <span class="char-count">0 / 4000</span>
+                    <button class="btn btn-primary" id="askBtn" type="button" onclick="ask()">⌘ ↵ 发送</button>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="metric-grid" aria-label="知识库统计">
+              <article class="metric">
+                <div class="metric-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M8 13h8M8 17h6"></path></svg></div>
+                <div>
+                  <div class="metric-label">文档数</div>
+                  <div class="metric-value" id="documents">0</div>
+                  <div class="metric-foot" id="docTypes">文档类型加载中</div>
+                </div>
+              </article>
+              <article class="metric">
+                <div class="metric-icon"><svg viewBox="0 0 24 24"><path d="m21 16-9 5-9-5 9-5 9 5z"></path><path d="m21 12-9 5-9-5M21 8l-9 5-9-5 9-5 9 5z"></path></svg></div>
+                <div>
+                  <div class="metric-label">文本块 Chunks</div>
+                  <div class="metric-value" id="chunks">0</div>
+                  <div class="metric-foot">用于检索和引用的文本片段</div>
+                </div>
+              </article>
+              <article class="metric">
+                <div class="metric-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"></path></svg></div>
+                <div>
+                  <div class="metric-label">向量 Embeddings</div>
+                  <div class="metric-value" id="embeddings">0</div>
+                  <div class="metric-foot" id="embeddingProviders">embedding provider 加载中</div>
+                </div>
+              </article>
+              <article class="metric">
+                <div class="metric-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg></div>
+                <div>
+                  <div class="metric-label">向量库 Chroma</div>
+                  <div class="metric-value" id="chromaVectors">0</div>
+                  <div class="metric-foot" id="lastIndexed">等待索引状态</div>
+                </div>
+              </article>
+            </section>
+
+            <div class="result-grid">
+            <section class="panel answer-panel" id="answerCard">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">回答</h3>
+                  <p class="panel-subtitle" id="answerMeta">基于检索结果生成</p>
+                </div>
+                <div class="button-row">
+                  <span class="badge" id="answerMode">Local</span>
+                  <button class="copy-btn" type="button" onclick="copyAnswer()">复制回答</button>
+                </div>
+              </div>
+              <div id="warnings"></div>
+              <div class="answer-body" id="answer">RAG（Retrieval-Augmented Generation）会先检索相关知识，再基于来源证据生成回答。回答区会在提问后展示摘要、引用片段和模型使用状态。</div>
+            </section>
+
+            <section class="panel" id="sources">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">来源证据</h3>
+                  <p class="panel-subtitle">查看命中文档、片段和相关度。</p>
+                </div>
+                <span class="badge gray" id="sourceCount">0 sources</span>
+              </div>
+              <div class="source-list" id="sourcesList">
+                <div class="empty">暂未检索。先提出一个问题，或点击“检索设置”。</div>
+              </div>
+            </section>
+            </div>
+
+            <section class="panel" id="knowledge" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">知识管理</h3>
+                  <p class="panel-subtitle">支持分页查看、直接输入文本、上传 txt、编辑和删除。新增或更新后会自动切块、embedding 并写入向量库。</p>
+                </div>
+                <span class="badge gray" id="knowledgeTotal">0 条</span>
+              </div>
+              <div class="composer">
+                <input id="knowledgeId" type="hidden" />
+                <div class="form-grid">
+                  <div class="control-group">
+                    <label for="knowledgeTitle">标题</label>
+                    <input id="knowledgeTitle" type="text" placeholder="例如：朱自清《春》" />
+                  </div>
+                  <div class="control-group">
+                    <label for="knowledgeFile">上传 txt</label>
+                    <input id="knowledgeFile" type="file" accept=".txt,text/plain" onchange="loadTxtFile(event)" />
+                  </div>
+                </div>
+                <div class="control-group" style="margin-top: 12px">
+                  <label for="knowledgeContent">知识内容</label>
+                  <textarea id="knowledgeContent" class="content-editor" placeholder="可以直接粘贴文本。例如：朱自清《春》、鲁迅《故乡》全文或片段。"></textarea>
+                </div>
+                <div class="button-row" style="margin-top: 12px">
+                  <button class="btn btn-primary" id="saveKnowledgeBtn" type="button" onclick="saveKnowledgeDocument()">保存知识</button>
+                  <button class="btn btn-secondary" type="button" onclick="resetKnowledgeForm()">清空表单</button>
+                  <button class="btn btn-secondary" type="button" onclick="loadKnowledgeDocuments()">刷新列表</button>
+                </div>
+              </div>
+              <div class="composer" style="padding-top: 0">
+                <div class="form-grid">
+                  <div class="control-group">
+                    <label for="knowledgeListSearch">列表搜索</label>
+                    <input id="knowledgeListSearch" type="text" placeholder="按标题、路径、文件名搜索" onkeydown="if(event.key==='Enter') loadKnowledgeDocuments(1)" />
+                  </div>
+                  <div class="control-group">
+                    <label for="knowledgePageSize">每页数量</label>
+                    <select id="knowledgePageSize" onchange="loadKnowledgeDocuments(1)">
+                      <option value="5">5</option>
+                      <option value="10" selected>10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="doc-table">
+                  <thead>
+                    <tr>
+                      <th>标题</th>
+                      <th>来源</th>
+                      <th>Chunks</th>
+                      <th>更新时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="knowledgeList">
+                    <tr><td colspan="5">加载中...</td></tr>
+                  </tbody>
+                </table>
+                <div class="button-row" style="justify-content: space-between; margin-top: 12px">
+                  <button class="btn btn-secondary" type="button" onclick="changeKnowledgePage(-1)">上一页</button>
+                  <span class="compact-note" id="knowledgePageInfo">第 1 页</span>
+                  <button class="btn btn-secondary" type="button" onclick="changeKnowledgePage(1)">下一页</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" id="semantic" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">相关性 / 语义查询</h3>
+                  <p class="panel-subtitle">输入“春天”应能找到《春》；输入“少年闰土”或“小孩子”应能找到《故乡》。流式结果会像对话产品一样逐字出现。</p>
+                </div>
+                <span class="badge gray" id="semanticCount">0 results</span>
+              </div>
+              <div class="composer">
+                <div class="form-grid">
+                  <div class="control-group">
+                    <label for="semanticQuery">查询内容</label>
+                    <input id="semanticQuery" type="text" placeholder="例如：春天 / 少年闰土 / 小孩子" />
+                  </div>
+                  <div class="control-group">
+                    <label for="semanticTopK">返回知识库数量</label>
+                    <select id="semanticTopK">
+                      <option value="3">3</option>
+                      <option value="5" selected>5</option>
+                      <option value="8">8</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="button-row" style="margin-top: 12px">
+                  <button class="btn btn-primary" id="streamSearchBtn" type="button" onclick="streamKnowledgeSearch()">流式查询</button>
+                  <button class="btn btn-secondary" id="docSearchBtn" type="button" onclick="searchKnowledgeDocuments()">普通查询</button>
+                </div>
+              </div>
+              <div class="stream-output" id="streamOutput">等待查询...</div>
+              <div class="source-list" id="documentSearchResults">
+                <div class="empty">暂无语义查询结果。</div>
+              </div>
+            </section>
+
+          </div>
+
+          <aside>
+            <section class="toc-card" aria-label="On this page">
+              <p class="toc-title">On This Page</p>
+              <nav class="toc-list">
+                <a href="#ask">提问</a>
+                <a href="#knowledge">知识管理</a>
+                <a href="#semantic">语义查询</a>
+                <a href="#sources">来源证据</a>
+                <a href="#history">最近提问</a>
+              </nav>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">检索设置</h3>
+                  <p class="panel-subtitle">用分面和模式切换减少噪音，适合在大型个人知识库中定位资料。</p>
+                </div>
+              </div>
+              <div class="controls">
+                <div class="control-group">
+                  <label for="category">索引范围</label>
+                  <select id="category"></select>
+                </div>
+                <div class="control-group">
+                  <label>检索模式</label>
+                  <div class="segmented" role="group" aria-label="检索模式">
+                    <button class="segment active" type="button" data-mode="hybrid" onclick="setRetrievalMode('hybrid')">Hybrid</button>
+                    <button class="segment" type="button" data-mode="vector" onclick="setRetrievalMode('vector')">Vector</button>
+                    <button class="segment" type="button" data-mode="keyword" onclick="setRetrievalMode('keyword')">Keyword</button>
+                  </div>
+                </div>
+                <div class="control-group">
+                  <label for="topK">返回片段数</label>
+                  <select id="topK">
+                    <option value="5">5</option>
+                    <option value="8" selected>8</option>
+                    <option value="12">12</option>
+                    <option value="16">16</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+                <div class="switch-row">
+                  <label for="useLlm">有 OPENAI_API_KEY 时使用 LLM 综合</label>
+                  <input id="useLlm" type="checkbox" checked />
+                </div>
+                <div class="switch-row">
+                  <label for="queryExpansion">语义扩展：本地同义词 / 领域词补全</label>
+                  <input id="queryExpansion" type="checkbox" checked />
+                </div>
+                <div class="switch-row">
+                  <label for="rerank">轻量重排：标题、路径、片段覆盖度加权</label>
+                  <input id="rerank" type="checkbox" checked />
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" id="api-settings" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">API Key / LLM 配置</h3>
+                  <p class="panel-subtitle">本地保存到项目 `.env`，页面不会回显明文。保存后当前服务进程立即生效。</p>
+                </div>
+                <span class="badge amber" id="apiKeyBadge">未配置</span>
+              </div>
+              <div class="controls">
+                <div class="control-group">
+                  <label for="openaiApiKey">OPENAI_API_KEY</label>
+                  <input id="openaiApiKey" type="password" autocomplete="off" placeholder="粘贴 OpenAI API Key，留空表示不修改" />
+                  <div class="compact-note" id="apiKeyMasked" style="margin-top: 7px">当前状态：加载中</div>
+                </div>
+                <div class="control-group">
+                  <label for="openaiModel">问答模型</label>
+                  <input id="openaiModel" type="text" placeholder="gpt-4.1-mini" />
+                </div>
+                <div class="control-group">
+                  <label for="openaiBaseUrl">Base URL</label>
+                  <input id="openaiBaseUrl" type="text" placeholder="https://api.openai.com/v1" />
+                </div>
+                <div class="control-group">
+                  <label for="embeddingProvider">Embedding Provider</label>
+                  <select id="embeddingProvider">
+                    <option value="openai">openai</option>
+                    <option value="local_hash">local_hash</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="embeddingModel">Embedding Model</label>
+                  <input id="embeddingModel" type="text" placeholder="text-embedding-3-small" />
+                </div>
+                <div class="switch-row">
+                  <label for="embeddingFallback">OpenAI embedding 失败时回退本地 hash</label>
+                  <input id="embeddingFallback" type="checkbox" checked />
+                </div>
+                <div class="button-row">
+                  <button class="btn btn-primary" id="saveApiKeyBtn" type="button" onclick="saveApiKeySettings()">保存配置</button>
+                  <button class="btn btn-secondary" id="clearApiKeyBtn" type="button" onclick="clearApiKey()">清除 Key</button>
+                </div>
+                <div class="compact-note" id="apiKeyWarnings">未配置 Key 时，问答和 embedding 会自动回退到本地模式。</div>
+              </div>
+            </section>
+
+            <section class="panel" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">向量库维护</h3>
+                  <p class="panel-subtitle">当 Chroma 计数为 0、HNSW 报错或向量检索异常时，可从 SQLite embedding 重建 Chroma。</p>
+                </div>
+                <span class="badge gray" id="vectorHealthBadge">未检查</span>
+              </div>
+              <div class="controls">
+                <div class="mini-item">
+                  <strong id="vectorHealthTitle">等待检查</strong>
+                  <span id="vectorHealthDetail">不会重新调用 OpenAI，只使用 SQLite 中已经保存的 embedding。</span>
+                </div>
+                <div class="button-row">
+                  <button class="btn btn-secondary" id="incrementalBtn" type="button" onclick="runIndex(false)">增量索引</button>
+                  <button class="btn btn-secondary" id="indexBtn" type="button" onclick="runIndex(true)">全量重建</button>
+                  <button class="btn btn-secondary" id="vectorHealthBtn" type="button" onclick="loadVectorStoreHealth()">检查状态</button>
+                  <button class="btn btn-primary" id="rebuildVectorBtn" type="button" onclick="rebuildVectorStore()">修复 / 重建 Chroma</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">文档类型</h3>
+                  <p class="panel-subtitle">索引内容分布</p>
+                </div>
+              </div>
+              <div class="distribution" id="typeDistribution">
+                <div class="empty">等待统计数据</div>
+              </div>
+            </section>
+
+            <section class="panel" id="history" style="margin-top: 18px">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">最近提问</h3>
+                  <p class="panel-subtitle">点击问题可重新填入输入框。</p>
+                </div>
+              </div>
+              <div class="mini-list" id="historyList">
+                <div class="empty">暂无历史记录</div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+    </div>
+
+    <script>
+      const state = {
+        retrievalMode: "hybrid",
+        queryExpansion: true,
+        rerank: true,
+        lastAnswer: "",
+        stats: null,
+        knowledgePage: 1,
+        knowledgeTotalPages: 0
+      };
+
+      const api = {
+        stats: () => fetchJson("/api/rag/stats"),
+        index: (payload) => fetchJson("/api/rag/index", { method: "POST", body: JSON.stringify(payload) }),
+        search: (payload) => fetchJson("/api/rag/search", { method: "POST", body: JSON.stringify(payload) }),
+        ask: (payload) => fetchJson("/api/rag/ask", { method: "POST", body: JSON.stringify(payload) }),
+        history: () => fetchJson("/api/rag/history"),
+        apiKey: () => fetchJson("/api/rag/api-key"),
+        saveApiKey: (payload) => fetchJson("/api/rag/api-key", { method: "PUT", body: JSON.stringify(payload) }),
+        vectorHealth: () => fetchJson("/api/rag/vector-store/health"),
+        rebuildVectorStore: () => fetchJson("/api/rag/vector-store/rebuild", { method: "POST" }),
+        listKnowledge: (params) => fetchJson(`/api/rag/knowledge?${new URLSearchParams(params).toString()}`),
+        getKnowledge: (id) => fetchJson(`/api/rag/knowledge/${id}`),
+        createKnowledge: (payload) => fetchJson("/api/rag/knowledge", { method: "POST", body: JSON.stringify(payload) }),
+        updateKnowledge: (id, payload) => fetchJson(`/api/rag/knowledge/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+        deleteKnowledge: (id) => fetchJson(`/api/rag/knowledge/${id}`, { method: "DELETE" }),
+        searchKnowledge: (payload) => fetchJson("/api/rag/knowledge/search", { method: "POST", body: JSON.stringify(payload) })
+      };
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          }
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            throw new Error(data.detail || text || `请求失败：${response.status}`);
+          } catch (error) {
+            if (error instanceof Error && error.message && error.message !== text) {
+              throw error;
+            }
+            throw new Error(text || `请求失败：${response.status}`);
+          }
+        }
+        return response.json();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function showMessage(text, type = "") {
+        const element = document.getElementById("message");
+        element.textContent = text || "";
+        element.className = `message ${text ? "visible" : ""} ${type}`.trim();
+      }
+
+      function setBusy(buttonId, isBusy) {
+        const button = document.getElementById(buttonId);
+        if (button) button.disabled = isBusy;
+      }
+
+      function formatDate(value) {
+        if (!value) return "暂无";
+        try {
+          return new Date(value).toLocaleString("zh-CN", { hour12: false });
+        } catch {
+          return value;
+        }
+      }
+
+      function formatNumber(value) {
+        return Number(value || 0).toLocaleString("zh-CN");
+      }
+
+      function selectedPayload() {
+        return {
+          category: document.getElementById("category").value || "all",
+          retrieval_mode: state.retrievalMode,
+          question: document.getElementById("question").value.trim(),
+          top_k: Number(document.getElementById("topK").value || 8),
+          use_llm: document.getElementById("useLlm").checked,
+          query_expansion: document.getElementById("queryExpansion").checked,
+          rerank: document.getElementById("rerank").checked
+        };
+      }
+
+      function setRetrievalMode(mode) {
+        state.retrievalMode = mode;
+        document.getElementById("modeBadge").textContent = mode;
+        document.querySelectorAll(".segment").forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === mode);
+        });
+      }
+
+      async function loadTxtFile(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".txt") && file.type && file.type !== "text/plain") {
+          showMessage("当前只支持上传 txt 文本文件。", "error");
+          return;
+        }
+        const text = await file.text();
+        document.getElementById("knowledgeTitle").value = document.getElementById("knowledgeTitle").value || file.name.replace(/\.txt$/i, "");
+        document.getElementById("knowledgeContent").value = text;
+        showMessage(`已读取文件：${file.name}，请确认后点击保存知识。`, "success");
+      }
+
+      function resetKnowledgeForm() {
+        document.getElementById("knowledgeId").value = "";
+        document.getElementById("knowledgeTitle").value = "";
+        document.getElementById("knowledgeContent").value = "";
+        document.getElementById("knowledgeFile").value = "";
+        document.getElementById("saveKnowledgeBtn").textContent = "保存知识";
+      }
+
+      async function saveKnowledgeDocument() {
+        const id = document.getElementById("knowledgeId").value;
+        const title = document.getElementById("knowledgeTitle").value.trim();
+        const content = document.getElementById("knowledgeContent").value.trim();
+        const file = document.getElementById("knowledgeFile").files?.[0];
+        if (!title || !content) {
+          showMessage("请填写标题和知识内容。", "error");
+          return;
+        }
+        setBusy("saveKnowledgeBtn", true);
+        try {
+          if (id) {
+            await api.updateKnowledge(id, { title, content });
+            showMessage("知识条目已更新，并重新生成索引。", "success");
+          } else {
+            await api.createKnowledge({
+              title,
+              content,
+              source_kind: file ? "upload" : "manual",
+              original_name: file?.name || ""
+            });
+            showMessage("知识条目已创建，并写入向量索引。", "success");
+          }
+          resetKnowledgeForm();
+          await Promise.all([loadKnowledgeDocuments(1), loadStats()]);
+        } catch (error) {
+          showMessage(error.message || "保存知识失败", "error");
+        } finally {
+          setBusy("saveKnowledgeBtn", false);
+        }
+      }
+
+      async function loadKnowledgeDocuments(page = state.knowledgePage) {
+        state.knowledgePage = Math.max(1, page);
+        const pageSize = document.getElementById("knowledgePageSize")?.value || 10;
+        const searchText = document.getElementById("knowledgeListSearch")?.value || "";
+        try {
+          const data = await api.listKnowledge({
+            page: state.knowledgePage,
+            page_size: pageSize,
+            search_text: searchText
+          });
+          state.knowledgePage = data.page;
+          state.knowledgeTotalPages = data.total_pages;
+          renderKnowledgeDocuments(data);
+        } catch (error) {
+          document.getElementById("knowledgeList").innerHTML = `<tr><td colspan="5">${escapeHtml(error.message || "加载失败")}</td></tr>`;
+        }
+      }
+
+      function renderKnowledgeDocuments(data) {
+        document.getElementById("knowledgeTotal").textContent = `${data.total} 条`;
+        document.getElementById("knowledgePageInfo").textContent = `第 ${data.page} / ${Math.max(data.total_pages, 1)} 页`;
+        const tbody = document.getElementById("knowledgeList");
+        if (!data.items.length) {
+          tbody.innerHTML = '<tr><td colspan="5">暂无知识条目。</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.items
+          .map((item) => `
+            <tr>
+              <td>
+                <strong>${escapeHtml(item.title)}</strong>
+                <div class="compact-note">${escapeHtml(item.file_path)}</div>
+              </td>
+              <td><span class="badge gray">${escapeHtml(item.source_kind || "file")}</span></td>
+              <td>${item.chunk_count}</td>
+              <td>${formatDate(item.updated_at || item.indexed_at)}</td>
+              <td>
+                <div class="button-row">
+                  <button class="copy-btn" type="button" onclick="editKnowledgeDocument(${item.id})">编辑</button>
+                  <button class="copy-btn" type="button" onclick="useDocumentAsQuery('${escapeJs(item.title)}')">查询</button>
+                  <button class="copy-btn" type="button" onclick="removeKnowledgeDocument(${item.id})">删除</button>
+                </div>
+              </td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function changeKnowledgePage(delta) {
+        const next = state.knowledgePage + delta;
+        if (next < 1 || (state.knowledgeTotalPages && next > state.knowledgeTotalPages)) return;
+        loadKnowledgeDocuments(next);
+      }
+
+      async function editKnowledgeDocument(id) {
+        try {
+          const item = await api.getKnowledge(id);
+          document.getElementById("knowledgeId").value = item.id;
+          document.getElementById("knowledgeTitle").value = item.title;
+          document.getElementById("knowledgeContent").value = item.content || "";
+          window.document.getElementById("saveKnowledgeBtn").textContent = "保存修改";
+          window.location.hash = "#knowledge";
+        } catch (error) {
+          showMessage(error.message || "加载知识详情失败", "error");
+        }
+      }
+
+      async function removeKnowledgeDocument(id) {
+        if (!confirm("确定要删除这个知识条目及其索引吗？这不会删除原始 Obsidian 文件，但会从当前 RAG 索引中移除。")) {
+          return;
+        }
+        try {
+          await api.deleteKnowledge(id);
+          showMessage("知识条目已删除。", "success");
+          await Promise.all([loadKnowledgeDocuments(), loadStats()]);
+        } catch (error) {
+          showMessage(error.message || "删除失败", "error");
+        }
+      }
+
+      function useDocumentAsQuery(title) {
+        document.getElementById("semanticQuery").value = title;
+        window.location.hash = "#semantic";
+        streamKnowledgeSearch();
+      }
+
+      function semanticPayload() {
+        return {
+          query: document.getElementById("semanticQuery").value.trim(),
+          top_k: Number(document.getElementById("semanticTopK").value || 5),
+          retrieval_mode: state.retrievalMode,
+          query_expansion: document.getElementById("queryExpansion").checked,
+          rerank: document.getElementById("rerank").checked
+        };
+      }
+
+      async function searchKnowledgeDocuments() {
+        const payload = semanticPayload();
+        if (!payload.query) {
+          showMessage("请输入语义查询内容。", "error");
+          return;
+        }
+        setBusy("docSearchBtn", true);
+        try {
+          const results = await api.searchKnowledge(payload);
+          renderDocumentSearchResults(results);
+          document.getElementById("streamOutput").textContent = `普通查询完成：找到 ${results.length} 个相关知识库。`;
+        } catch (error) {
+          showMessage(error.message || "语义查询失败", "error");
+        } finally {
+          setBusy("docSearchBtn", false);
+        }
+      }
+
+      async function streamKnowledgeSearch() {
+        const payload = semanticPayload();
+        if (!payload.query) {
+          showMessage("请输入语义查询内容。", "error");
+          return;
+        }
+        const output = document.getElementById("streamOutput");
+        output.textContent = "";
+        setBusy("streamSearchBtn", true);
+        try {
+          const response = await fetch("/api/rag/knowledge/search/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok || !response.body) {
+            throw new Error(await response.text());
+          }
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            output.textContent += decoder.decode(value, { stream: true });
+          }
+          const results = await api.searchKnowledge(payload);
+          renderDocumentSearchResults(results);
+          showMessage("流式查询完成。", "success");
+        } catch (error) {
+          showMessage(error.message || "流式查询失败", "error");
+        } finally {
+          setBusy("streamSearchBtn", false);
+        }
+      }
+
+      function renderDocumentSearchResults(results) {
+        const container = document.getElementById("documentSearchResults");
+        document.getElementById("semanticCount").textContent = `${results.length} results`;
+        if (!results.length) {
+          container.innerHTML = '<div class="empty">没有找到相关知识库。</div>';
+          return;
+        }
+        const maxScore = Math.max(...results.map((item) => Number(item.score || 0)), 1);
+        container.innerHTML = results
+          .map((item, index) => {
+            const pct = Math.max(6, Math.min(100, Math.round((Number(item.score || 0) / maxScore) * 100)));
+            return `
+              <article class="source-card">
+                <div class="source-top">
+                  <div>
+                    <h4 class="source-title">[${index + 1}] 《${escapeHtml(item.title)}》</h4>
+                    <div class="source-path">${escapeHtml(item.file_path)}</div>
+                  </div>
+                  <button class="copy-btn" type="button" onclick="editKnowledgeDocument(${item.document_id})">查看/编辑</button>
+                </div>
+                ${item.best_heading ? `<div class="source-heading">${escapeHtml(item.best_heading)}</div>` : ""}
+                <div class="source-content">${escapeHtml(item.snippet || "")}</div>
+                <div class="score-bar"><div class="score-fill" style="width: ${pct}%"></div></div>
+                <div class="score-meta">
+                  <span class="badge gray">score ${formatScore(item.score)}</span>
+                  <span class="badge gray">matched ${item.matched_chunks}</span>
+                  <span class="badge gray">${escapeHtml(item.source_kind || "file")}</span>
+                  ${item.matched_query ? `<span class="badge green">matched ${escapeHtml(item.matched_query)}</span>` : ""}
+                  ${item.expanded_queries?.length ? `<span class="badge amber">expanded ${escapeHtml(item.expanded_queries.slice(0, 4).join(" / "))}</span>` : ""}
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadStats() {
+        try {
+          const stats = await api.stats();
+          state.stats = stats;
+          document.getElementById("healthText").textContent = "服务已连接";
+          document.getElementById("documents").textContent = formatNumber(stats.documents);
+          document.getElementById("chunks").textContent = formatNumber(stats.chunks);
+          document.getElementById("embeddings").textContent = formatNumber(stats.embeddings);
+          document.getElementById("chromaVectors").textContent = formatNumber(stats.chroma_vectors);
+          document.getElementById("vectorStoreChip").textContent = `${stats.vector_store || "sqlite"} / ${stats.chroma_collection || "default"}`;
+          document.getElementById("sideKbRoot").textContent = stats.kb_root || "未配置";
+          document.getElementById("lastIndexed").textContent = `最近索引：${formatDate(stats.last_indexed_at)}`;
+          document.getElementById("docTypes").textContent = summarizeMap(stats.document_types, "暂无文档类型");
+          document.getElementById("embeddingProviders").textContent = summarizeMap(stats.embedding_providers, stats.embedding_provider || "暂无 provider");
+          renderCategories(stats.categories || {});
+          renderTypeDistribution(stats.document_types || {});
+          showMessage("");
+        } catch (error) {
+          document.getElementById("healthText").textContent = "连接失败";
+          showMessage(error.message || "加载统计失败", "error");
+        }
+      }
+
+      async function loadApiKeySettings() {
+        try {
+          const settings = await api.apiKey();
+          renderApiKeySettings(settings);
+        } catch (error) {
+          document.getElementById("apiKeyWarnings").textContent = error.message || "API Key 配置状态加载失败。";
+        }
+      }
+
+      function renderApiKeySettings(settings) {
+        const badge = document.getElementById("apiKeyBadge");
+        badge.textContent = settings.openai_api_key_configured ? "已配置" : "未配置";
+        badge.className = settings.openai_api_key_configured ? "badge green" : "badge amber";
+        document.getElementById("apiKeyMasked").textContent = settings.openai_api_key_configured
+          ? `当前 Key：${settings.openai_api_key_masked}`
+          : "当前 Key：未配置";
+        document.getElementById("openaiModel").value = settings.openai_model || "gpt-4.1-mini";
+        document.getElementById("openaiBaseUrl").value = settings.openai_base_url || "https://api.openai.com/v1";
+        document.getElementById("embeddingProvider").value = settings.embedding_provider || "openai";
+        document.getElementById("embeddingModel").value = settings.embedding_model || "text-embedding-3-small";
+        document.getElementById("embeddingFallback").checked = Boolean(settings.embedding_fallback_to_local);
+        document.getElementById("apiKeyWarnings").textContent = settings.warnings?.length
+          ? settings.warnings.join(" ")
+          : "API Key 已配置。LLM 问答和 OpenAI embedding 可以使用当前配置。";
+      }
+
+      async function saveApiKeySettings() {
+        setBusy("saveApiKeyBtn", true);
+        showMessage("正在保存 API Key 配置...");
+        try {
+          const payload = {
+            openai_api_key: document.getElementById("openaiApiKey").value.trim() || null,
+            clear_openai_api_key: false,
+            openai_model: document.getElementById("openaiModel").value.trim(),
+            openai_base_url: document.getElementById("openaiBaseUrl").value.trim(),
+            embedding_provider: document.getElementById("embeddingProvider").value,
+            embedding_model: document.getElementById("embeddingModel").value.trim(),
+            embedding_fallback_to_local: document.getElementById("embeddingFallback").checked
+          };
+          const result = await api.saveApiKey(payload);
+          document.getElementById("openaiApiKey").value = "";
+          renderApiKeySettings(result);
+          await loadStats();
+          showMessage("API Key 配置已保存。当前服务进程已更新环境变量。", "success");
+        } catch (error) {
+          showMessage(error.message || "API Key 配置保存失败", "error");
+        } finally {
+          setBusy("saveApiKeyBtn", false);
+        }
+      }
+
+      async function clearApiKey() {
+        if (!confirm("确定要清除本地保存的 OPENAI_API_KEY 吗？清除后会回退到本地摘录式回答。")) {
+          return;
+        }
+        setBusy("clearApiKeyBtn", true);
+        try {
+          const result = await api.saveApiKey({
+            clear_openai_api_key: true,
+            openai_model: document.getElementById("openaiModel").value.trim(),
+            openai_base_url: document.getElementById("openaiBaseUrl").value.trim(),
+            embedding_provider: document.getElementById("embeddingProvider").value,
+            embedding_model: document.getElementById("embeddingModel").value.trim(),
+            embedding_fallback_to_local: document.getElementById("embeddingFallback").checked
+          });
+          document.getElementById("openaiApiKey").value = "";
+          renderApiKeySettings(result);
+          showMessage("OPENAI_API_KEY 已清除。", "success");
+        } catch (error) {
+          showMessage(error.message || "清除 API Key 失败", "error");
+        } finally {
+          setBusy("clearApiKeyBtn", false);
+        }
+      }
+
+      async function loadVectorStoreHealth() {
+        setBusy("vectorHealthBtn", true);
+        try {
+          const health = await api.vectorHealth();
+          renderVectorStoreHealth(health);
+        } catch (error) {
+          document.getElementById("vectorHealthBadge").textContent = "检查失败";
+          document.getElementById("vectorHealthBadge").className = "badge amber";
+          document.getElementById("vectorHealthTitle").textContent = "向量库状态检查失败";
+          document.getElementById("vectorHealthDetail").textContent = error.message || "无法读取 Chroma 状态。";
+        } finally {
+          setBusy("vectorHealthBtn", false);
+        }
+      }
+
+      function renderVectorStoreHealth(health) {
+        const badge = document.getElementById("vectorHealthBadge");
+        const status = health.status || "unknown";
+        badge.textContent = status;
+        badge.className = status === "ok" ? "badge green" : status === "needs_rebuild" || status === "partial" ? "badge amber" : "badge gray";
+        document.getElementById("vectorHealthTitle").textContent =
+          `SQLite embeddings ${health.sqlite_embeddings} / Chroma vectors ${health.chroma_vectors}`;
+        const errors = health.errors?.length ? ` 错误：${health.errors.join("；")}` : "";
+        document.getElementById("vectorHealthDetail").textContent =
+          `路径：${health.chroma_path}，collection：${health.chroma_collection}，可查询：${health.can_query ? "是" : "否"}。${errors}`;
+      }
+
+      async function rebuildVectorStore() {
+        if (!confirm("确定要清空并从 SQLite embeddings 重建 Chroma 向量库吗？这不会重新调用 OpenAI，也不会删除知识内容。")) {
+          return;
+        }
+        setBusy("rebuildVectorBtn", true);
+        showMessage("正在修复 / 重建 Chroma 向量库...");
+        try {
+          const result = await api.rebuildVectorStore();
+          document.getElementById("vectorHealthBadge").textContent = result.status;
+          document.getElementById("vectorHealthBadge").className = result.status === "ok" ? "badge green" : "badge amber";
+          document.getElementById("vectorHealthTitle").textContent =
+            `已写入 ${result.upserted_vectors} / ${result.source_embeddings} 个向量`;
+          document.getElementById("vectorHealthDetail").textContent =
+            `最终 Chroma count：${result.final_count}，批次数：${result.batches}，维度：${result.target_dimensions}，跳过：${result.skipped_vectors}。${result.errors?.length ? "错误：" + result.errors.join("；") : ""}`;
+          await Promise.all([loadStats(), loadVectorStoreHealth()]);
+          showMessage("Chroma 向量库重建完成。", result.status === "ok" ? "success" : "error");
+        } catch (error) {
+          showMessage(error.message || "Chroma 重建失败", "error");
+        } finally {
+          setBusy("rebuildVectorBtn", false);
+        }
+      }
+
+      function summarizeMap(map, fallback) {
+        const entries = Object.entries(map || {});
+        if (!entries.length) return fallback;
+        return entries.map(([key, value]) => `${key} ${value}`).join(" / ");
+      }
+
+      function renderCategories(categories) {
+        const select = document.getElementById("category");
+        const current = select.value || "all";
+        select.innerHTML = "";
+        const entries = Object.entries(categories);
+        if (!entries.some(([key]) => key === "all")) {
+          entries.unshift(["all", "全部"]);
+        }
+        entries.forEach(([key, label]) => {
+          const option = document.createElement("option");
+          option.value = key;
+          option.textContent = `${key} - ${label}`;
+          select.appendChild(option);
+        });
+        select.value = entries.some(([key]) => key === current) ? current : "all";
+      }
+
+      function renderTypeDistribution(types) {
+        const container = document.getElementById("typeDistribution");
+        const entries = Object.entries(types || {}).sort((a, b) => Number(b[1]) - Number(a[1]));
+        if (!entries.length) {
+          container.innerHTML = '<div class="empty">暂无文档类型统计。请先建立索引。</div>';
+          return;
+        }
+        const max = Math.max(...entries.map(([, value]) => Number(value || 0)), 1);
+        container.innerHTML = entries
+          .map(([type, count]) => {
+            const pct = Math.max(4, Math.round((Number(count) / max) * 100));
+            return `
+              <div class="dist-row">
+                <span>${escapeHtml(type)}</span>
+                <div class="dist-track"><div class="dist-fill" style="width: ${pct}%"></div></div>
+                <span>${formatNumber(count)}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function runIndex(rebuild) {
+        const buttonId = rebuild ? "indexBtn" : "incrementalBtn";
+        setBusy(buttonId, true);
+        showMessage(rebuild ? "正在全量重建索引，这可能需要一些时间..." : "正在执行增量索引...");
+        try {
+          const category = document.getElementById("category").value || "all";
+          const result = await api.index({ category, rebuild });
+          const errorText = result.errors?.length ? `，错误 ${result.errors.length} 条` : "";
+          showMessage(
+            `索引完成：文档 ${result.indexed_documents}，片段 ${result.indexed_chunks}，向量 ${result.embedded_chunks}，跳过 ${result.skipped_files}，删除 ${result.deleted_documents}${errorText}`,
+            result.errors?.length ? "error" : "success"
+          );
+          await loadStats();
+        } catch (error) {
+          showMessage(error.message || "索引失败", "error");
+        } finally {
+          setBusy(buttonId, false);
+        }
+      }
+
+      async function ask() {
+        const payload = selectedPayload();
+        if (!payload.question) {
+          showMessage("请先输入问题。", "error");
+          return;
+        }
+        setBusy("askBtn", true);
+        showMessage("正在检索并生成回答...");
+        try {
+          const started = performance.now();
+          const result = await api.ask(payload);
+          const latency = Math.round(performance.now() - started);
+          renderAnswer(result, latency);
+          renderSources(result.sources || []);
+          await loadHistory();
+          showMessage("");
+        } catch (error) {
+          showMessage(error.message || "提问失败", "error");
+        } finally {
+          setBusy("askBtn", false);
+        }
+      }
+
+      async function searchOnly() {
+        const payload = selectedPayload();
+        if (!payload.question) {
+          showMessage("请先输入检索词。", "error");
+          return;
+        }
+        setBusy("searchBtn", true);
+        showMessage("正在检索来源片段...");
+        try {
+          const results = await api.search({
+            query: payload.question,
+            category: payload.category,
+            top_k: payload.top_k,
+            retrieval_mode: payload.retrieval_mode,
+            query_expansion: payload.query_expansion,
+            rerank: payload.rerank
+          });
+          renderSources(results || []);
+          document.getElementById("answerCard").style.display = "none";
+          showMessage(`检索完成：找到 ${results.length} 个来源片段。`, "success");
+        } catch (error) {
+          showMessage(error.message || "检索失败", "error");
+        } finally {
+          setBusy("searchBtn", false);
+        }
+      }
+
+      function renderAnswer(result, latency) {
+        const card = document.getElementById("answerCard");
+        const answer = result.answer || "暂无回答。";
+        state.lastAnswer = answer;
+        card.style.display = "block";
+        document.getElementById("answer").textContent = answer;
+        document.getElementById("answerMeta").textContent = `来源 ${result.sources?.length || 0} 个 / 耗时 ${latency} ms / 模式 ${state.retrievalMode}`;
+        const mode = document.getElementById("answerMode");
+        mode.textContent = result.llm_used ? `LLM：${result.model || "unknown"}` : "Local Extractive";
+        mode.className = result.llm_used ? "badge green" : "badge amber";
+        const warnings = result.warnings || [];
+        document.getElementById("warnings").innerHTML = warnings
+          .map((warning) => `<div class="warning">${escapeHtml(warning)}</div>`)
+          .join("");
+      }
+
+      function renderSources(sources) {
+        const container = document.getElementById("sourcesList");
+        document.getElementById("sourceCount").textContent = `${sources.length} sources`;
+        if (!sources.length) {
+          container.innerHTML = '<div class="empty">暂无来源片段。请先建立索引，或换一个更具体的问题。</div>';
+          return;
+        }
+        const maxScore = Math.max(...sources.map((source) => Number(source.score || 0)), 1);
+        container.innerHTML = sources
+          .map((source, index) => {
+            const pct = Math.max(6, Math.min(100, Math.round((Number(source.score || 0) / maxScore) * 100)));
+            return `
+              <article class="source-card">
+                <div class="source-top">
+                  <div>
+                    <h4 class="source-title">[${index + 1}] ${escapeHtml(source.title || "未命名文档")}</h4>
+                    <div class="source-path">${escapeHtml(source.file_path || "")}</div>
+                  </div>
+                  <button class="copy-btn" type="button" onclick="copyText('${escapeJs(source.file_path || "")}')">复制路径</button>
+                </div>
+                ${source.heading ? `<div class="source-heading">${escapeHtml(source.heading)}</div>` : ""}
+                <div class="source-content">${escapeHtml(source.content || "")}</div>
+                <div class="score-bar"><div class="score-fill" style="width: ${pct}%"></div></div>
+                <div class="score-meta">
+                  <span class="badge gray">score ${formatScore(source.score)}</span>
+                  <span class="badge gray">keyword ${formatScore(source.keyword_score)}</span>
+                  <span class="badge gray">vector ${formatScore(source.vector_score)}</span>
+                  ${source.matched_query ? `<span class="badge green">matched ${escapeHtml(source.matched_query)}</span>` : ""}
+                  ${source.expanded_queries?.length ? `<span class="badge amber">expanded ${escapeHtml(source.expanded_queries.slice(0, 4).join(" / "))}</span>` : ""}
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function formatScore(value) {
+        const number = Number(value || 0);
+        if (Math.abs(number) < 1) return number.toFixed(4);
+        return number.toFixed(2);
+      }
+
+      function escapeJs(value) {
+        return String(value ?? "")
+          .replaceAll("\\", "\\\\")
+          .replaceAll("'", "\\'")
+          .replaceAll("\n", " ");
+      }
+
+      async function loadHistory() {
+        const items = await api.history();
+        const container = document.getElementById("historyList");
+        if (!items.length) {
+          container.innerHTML = '<div class="empty">暂无历史记录。</div>';
+          return;
+        }
+        container.innerHTML = items
+          .map((item) => `
+            <button class="mini-item" type="button" onclick="reuseQuestion('${escapeJs(item.question)}')">
+              <strong>${escapeHtml(item.question)}</strong>
+              <span>${formatDate(item.created_at)} / sources ${item.source_count} / ${item.llm_used ? "LLM" : "Local"} / ${Math.round(item.latency_ms || 0)} ms</span>
+            </button>
+          `)
+          .join("");
+      }
+
+      function reuseQuestion(question) {
+        document.getElementById("question").value = question;
+        document.getElementById("question").focus();
+      }
+
+      async function copyText(value) {
+        try {
+          await navigator.clipboard.writeText(value);
+          showMessage("已复制。", "success");
+        } catch {
+          showMessage("复制失败，请手动选择文本。", "error");
+        }
+      }
+
+      function copyAnswer() {
+        if (!state.lastAnswer) {
+          showMessage("当前还没有可复制的回答。", "error");
+          return;
+        }
+        copyText(state.lastAnswer);
+      }
+
+      document.getElementById("question").addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          ask();
+        }
+      });
+
+      loadStats();
+      loadApiKeySettings();
+      loadVectorStoreHealth();
+      loadHistory().catch(() => {});
+    </script>
+  </body>
+</html>
