@@ -1,5 +1,215 @@
 # RAG Knowledge Base
 
+## 2026-06-07 增强说明
+
+本项目是独立的 RAG 知识库问答系统，不是 AgentOS 管理平台。本轮新增能力围绕“更完整的本地 RAG 问答”展开：
+
+- 使用 Chroma 作为持久化向量数据库，并保留 SQLite embedding 作为可重建来源。
+- 增加手动增量索引接口。
+- 增加 APScheduler 定时增量索引开关。
+- 增加 watchdog 文件监听索引开关。
+- 增加 TXT 扫描支持。
+- 增加 PDF OCR fallback，默认关闭，避免额外依赖和误触发。
+- 增加 Obsidian `[[双链]]` 图谱扫描和过滤接口。
+- 增加回答保存为 Markdown 笔记。
+- 增加多轮对话上下文。
+- 增加 RAG 评测集和 Top K 命中率统计。
+- 增加可选 `cross_encoder` / `llm` rerank 策略，但默认关闭以控制成本。
+
+### 新增环境变量
+
+```text
+RAG_RERANK_DEFAULT=false
+RAG_RERANK_STRATEGY=none
+RAG_PDF_OCR_ENABLED=false
+RAG_PDF_OCR_MAX_PAGES=5
+RAG_INDEX_SCHEDULER_INTERVAL_SECONDS=300
+RAG_SAVED_ANSWERS_DIR=04_Resources/RAG-Answers
+```
+
+说明：
+
+- `RAG_RERANK_DEFAULT=false`：默认不启用重排序，避免额外成本。
+- `RAG_RERANK_STRATEGY=none`：可选值为 `none`、`cross_encoder`、`llm`。
+- `RAG_PDF_OCR_ENABLED=false`：默认不启用 PDF OCR。
+- `RAG_INDEX_SCHEDULER_INTERVAL_SECONDS=300`：定时增量索引默认 5 分钟一次。
+- `RAG_SAVED_ANSWERS_DIR`：回答保存为 Markdown 时，写入知识库根目录下的相对路径。
+
+### 新增 API
+
+索引运行时：
+
+```text
+POST /api/rag/index/incremental
+POST /api/rag/index/scheduler/start
+POST /api/rag/index/scheduler/stop
+GET  /api/rag/index/scheduler/status
+POST /api/rag/index/watcher/start
+POST /api/rag/index/watcher/stop
+GET  /api/rag/index/watcher/status
+```
+
+回答保存和多轮上下文：
+
+```text
+POST /api/rag/ask
+POST /api/rag/answers/save
+GET  /api/rag/conversations
+GET  /api/rag/conversations/{conversation_id}/messages
+```
+
+Obsidian 双链图谱：
+
+```text
+GET /api/rag/graph?category=all&search_text=&min_degree=0&limit=200
+```
+
+RAG 评测：
+
+```text
+POST /api/rag/eval/cases
+GET  /api/rag/eval/cases
+POST /api/rag/eval/run
+```
+
+### Chroma 向量库
+
+当前项目使用：
+
+```text
+RAG_VECTOR_STORE=chroma
+RAG_CHROMA_PATH=./data/chroma_openai
+RAG_CHROMA_COLLECTION=rag_knowledge_base
+```
+
+SQLite 是事实源，Chroma 是向量索引层。如果 Chroma 计数异常，可以使用：
+
+```text
+POST /api/rag/vector-store/rebuild
+```
+
+该接口会从 SQLite 中已有的 embedding 重建 Chroma，不会重新调用 OpenAI，也不会重新消耗 embedding 费用。
+
+### PDF OCR
+
+普通 PDF 会先使用 `pypdf` 提取文本。如果提取结果为空，并且：
+
+```text
+RAG_PDF_OCR_ENABLED=true
+```
+
+系统会尝试使用 `PyMuPDF + pytesseract + Pillow` 做 OCR。
+
+注意：
+
+- OCR 默认关闭。
+- 本地还需要安装 Tesseract OCR 可执行程序。
+- OCR 只作为 fallback，不会影响普通 PDF 文本解析。
+
+### 定时增量索引和文件监听
+
+手动增量索引：
+
+```text
+POST /api/rag/index/incremental
+```
+
+定时增量索引：
+
+```text
+POST /api/rag/index/scheduler/start
+GET  /api/rag/index/scheduler/status
+POST /api/rag/index/scheduler/stop
+```
+
+文件监听：
+
+```text
+POST /api/rag/index/watcher/start
+GET  /api/rag/index/watcher/status
+POST /api/rag/index/watcher/stop
+```
+
+文件监听依赖 `watchdog`。监听到新增、修改、删除后，会触发后台增量索引。当前是本地单进程实现，不是分布式队列。
+
+### 回答保存为 Markdown
+
+前端问答后，可以点击“保存为 Markdown”。后端会写入：
+
+```text
+{RAG_KB_ROOT}/{RAG_SAVED_ANSWERS_DIR}/
+```
+
+默认是：
+
+```text
+D:\My-Knowledge-Base\04_Resources\RAG-Answers
+```
+
+保存内容包含：
+
+- 问题
+- 回答
+- 来源列表
+- query_log_id
+- conversation_id
+
+### 多轮对话
+
+`POST /api/rag/ask` 支持传入：
+
+```json
+{
+  "conversation_id": 1
+}
+```
+
+如果不传，后端会创建新对话。后续同一个 `conversation_id` 的最近消息会被带入 LLM prompt，用于多轮上下文。
+
+### RAG 评测
+
+新增评测用例：
+
+```json
+{
+  "query": "小孩子",
+  "expected_document": "故乡",
+  "category": "all"
+}
+```
+
+运行评测后会统计：
+
+- case_count
+- hit_count
+- hit_rate
+- 每个用例的命中 rank
+- Top K 返回结果
+
+命中规则第一版是规则判断：期望文档关键词是否出现在 Top K 结果的标题、路径或内容里。
+
+### 可选 rerank
+
+默认：
+
+```text
+RAG_RERANK_DEFAULT=false
+RAG_RERANK_STRATEGY=none
+```
+
+可选：
+
+```text
+RAG_RERANK_STRATEGY=cross_encoder
+RAG_RERANK_STRATEGY=llm
+```
+
+注意：
+
+- `cross_encoder` 需要额外安装 `sentence-transformers`，默认没有加入 `requirements.txt`，避免依赖过重。
+- `llm` 会调用 OpenAI chat/completions，有额外 token 成本。
+- 默认关闭是为了控制成本。
+
 ## Frontend Upgrade: Next.js + shadcn/ui Style
 
 本项目现在保留两套前端入口：

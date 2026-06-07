@@ -59,6 +59,8 @@ export interface AskResponse {
   llm_used: boolean;
   model: string;
   warnings: string[];
+  conversation_id?: number | null;
+  query_log_id?: number | null;
 }
 
 export interface KnowledgeDocumentRead {
@@ -140,4 +142,59 @@ export interface VectorStoreRebuildResponse {
   batches: number;
   status: string;
   errors: string[];
+}
+
+export interface RuntimeStatus {
+  enabled: boolean;
+  running: boolean;
+  kb_root?: string | null;
+  interval_seconds?: number | null;
+  jobs: Array<Record<string, unknown>>;
+  last_run: Record<string, unknown>;
+  error?: string | null;
+}
+
+export interface ObsidianGraphResponse {
+  nodes: Array<{ id: string; label: string; file_path: string; degree: number }>;
+  edges: Array<{ source: string; target: string; label: string }>;
+  total_files_scanned: number;
+}
+
+export interface ConversationRead {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvalCaseRead {
+  id: number;
+  query: string;
+  expected_document: string;
+  expected_text: string;
+  category: string;
+  notes: string;
+  created_at: string;
+}
+
+export interface EvalRunResponse {
+  run_id: number;
+  case_count: number;
+  hit_count: number;
+  hit_rate: number;
+  results: Array<{
+    case_id: number;
+    query: string;
+    expected_document: string;
+    hit: boolean;
+    rank: number;
+    top_results: Array<Record<string, unknown>>;
+  }>;
+}
+
+export interface SaveAnswerResponse {
+  id: number;
+  title: string;
+  file_path: string;
+  created_at: string;
 }

@@ -5,3 +5,8 @@ sqlalchemy
 pypdf
 python-docx
 chromadb
+apscheduler
+watchdog
+pytesseract
+pymupdf
+pillow

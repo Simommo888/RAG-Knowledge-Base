@@ -38,8 +38,13 @@ class Settings:
     chroma_collection: str = os.getenv("RAG_CHROMA_COLLECTION", "rag_knowledge_base")
     chroma_shard_size: int = int(os.getenv("RAG_CHROMA_SHARD_SIZE", "500"))
     query_expansion_default: bool = os.getenv("RAG_QUERY_EXPANSION_DEFAULT", "true").lower() == "true"
-    rerank_default: bool = os.getenv("RAG_RERANK_DEFAULT", "true").lower() == "true"
+    rerank_default: bool = os.getenv("RAG_RERANK_DEFAULT", "false").lower() == "true"
+    rerank_strategy: str = os.getenv("RAG_RERANK_STRATEGY", "none").strip().lower()
     max_query_expansions: int = int(os.getenv("RAG_MAX_QUERY_EXPANSIONS", "8"))
+    pdf_ocr_enabled: bool = os.getenv("RAG_PDF_OCR_ENABLED", "false").lower() == "true"
+    pdf_ocr_max_pages: int = int(os.getenv("RAG_PDF_OCR_MAX_PAGES", "5"))
+    index_scheduler_interval_seconds: int = int(os.getenv("RAG_INDEX_SCHEDULER_INTERVAL_SECONDS", "300"))
+    saved_answers_dir: str = os.getenv("RAG_SAVED_ANSWERS_DIR", "04_Resources/RAG-Answers")
 
 
 settings = Settings()
@@ -72,7 +77,7 @@ DEFAULT_EXCLUDED_FILES = {
     "pnpm-lock.yaml",
 }
 
-SUPPORTED_EXTENSIONS = {".md", ".pdf", ".docx"}
+SUPPORTED_EXTENSIONS = {".md", ".txt", ".pdf", ".docx"}
 
 
 CATEGORY_DIRS = {

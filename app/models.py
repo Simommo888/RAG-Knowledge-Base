@@ -70,3 +70,77 @@ class QueryLog(Base):
     source_count: Mapped[int] = mapped_column(Integer, default=0)
     latency_ms: Mapped[float] = mapped_column(Float, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class RagConversation(Base):
+    __tablename__ = "rag_conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class RagConversationMessage(Base):
+    __tablename__ = "rag_conversation_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("rag_conversations.id"), index=True)
+    role: Mapped[str] = mapped_column(String(40), default="user")
+    content: Mapped[str] = mapped_column(Text, default="")
+    sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class SavedAnswerNote(Base):
+    __tablename__ = "saved_answer_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    query_log_id: Mapped[int | None] = mapped_column(ForeignKey("query_logs.id"), nullable=True, index=True)
+    conversation_id: Mapped[int | None] = mapped_column(ForeignKey("rag_conversations.id"), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(300), default="")
+    question: Mapped[str] = mapped_column(Text, default="")
+    answer: Mapped[str] = mapped_column(Text, default="")
+    sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    file_path: Mapped[str] = mapped_column(String(1000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class RagEvalCase(Base):
+    __tablename__ = "rag_eval_cases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    query: Mapped[str] = mapped_column(Text, default="")
+    expected_document: Mapped[str] = mapped_column(String(500), default="")
+    expected_text: Mapped[str] = mapped_column(Text, default="")
+    category: Mapped[str] = mapped_column(String(120), default="all")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class RagEvalRun(Base):
+    __tablename__ = "rag_eval_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    top_k: Mapped[int] = mapped_column(Integer, default=8)
+    retrieval_mode: Mapped[str] = mapped_column(String(40), default="hybrid")
+    query_expansion: Mapped[int] = mapped_column(Integer, default=1)
+    rerank: Mapped[int] = mapped_column(Integer, default=0)
+    case_count: Mapped[int] = mapped_column(Integer, default=0)
+    hit_count: Mapped[int] = mapped_column(Integer, default=0)
+    hit_rate: Mapped[float] = mapped_column(Float, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class RagEvalResult(Base):
+    __tablename__ = "rag_eval_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("rag_eval_runs.id"), index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("rag_eval_cases.id"), index=True)
+    query: Mapped[str] = mapped_column(Text, default="")
+    expected_document: Mapped[str] = mapped_column(String(500), default="")
+    hit: Mapped[int] = mapped_column(Integer, default=0)
+    rank: Mapped[int] = mapped_column(Integer, default=0)
+    top_results_json: Mapped[str] = mapped_column(Text, default="[]")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

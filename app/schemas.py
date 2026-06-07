@@ -50,6 +50,7 @@ class AskRequest(BaseModel):
     retrieval_mode: str = "hybrid"
     query_expansion: bool | None = None
     rerank: bool | None = None
+    conversation_id: int | None = None
 
 
 class AskResponse(BaseModel):
@@ -59,6 +60,8 @@ class AskResponse(BaseModel):
     llm_used: bool = False
     model: str = ""
     warnings: list[str] = Field(default_factory=list)
+    conversation_id: int | None = None
+    query_log_id: int | None = None
 
 
 class StatsResponse(BaseModel):
@@ -211,3 +214,116 @@ class QueryLogRead(BaseModel):
     source_count: int
     latency_ms: float
     created_at: datetime
+
+
+class IncrementalIndexResponse(BaseModel):
+    status: str = ""
+    message: str = ""
+    started_at: str | None = None
+    finished_at: str | None = None
+    category: str = "all"
+    indexed_documents: int = 0
+    indexed_chunks: int = 0
+    skipped_files: int = 0
+    deleted_documents: int = 0
+    embedded_chunks: int = 0
+    errors: list[str] = Field(default_factory=list)
+
+
+class RuntimeStatus(BaseModel):
+    enabled: bool = False
+    running: bool = False
+    kb_root: str | None = None
+    interval_seconds: int | None = None
+    jobs: list[dict] = Field(default_factory=list)
+    last_run: dict = Field(default_factory=dict)
+    error: str | None = None
+
+
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    file_path: str = ""
+    degree: int = 0
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    label: str = ""
+
+
+class ObsidianGraphResponse(BaseModel):
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
+    total_files_scanned: int = 0
+
+
+class SaveAnswerRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=300)
+    question: str = Field(..., min_length=1)
+    answer: str = Field(..., min_length=1)
+    sources: list[dict] = Field(default_factory=list)
+    query_log_id: int | None = None
+    conversation_id: int | None = None
+    target_dir: str | None = None
+
+
+class SaveAnswerResponse(BaseModel):
+    id: int
+    title: str
+    file_path: str
+    created_at: datetime
+
+
+class ConversationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class EvalCaseCreate(BaseModel):
+    query: str = Field(..., min_length=1)
+    expected_document: str = Field(..., min_length=1)
+    expected_text: str = ""
+    category: str = "all"
+    notes: str = ""
+
+
+class EvalCaseRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    query: str
+    expected_document: str
+    expected_text: str
+    category: str
+    notes: str
+    created_at: datetime
+
+
+class EvalRunRequest(BaseModel):
+    top_k: int = Field(default=8, ge=1, le=30)
+    retrieval_mode: str = "hybrid"
+    query_expansion: bool = True
+    rerank: bool = False
+
+
+class EvalResultRead(BaseModel):
+    case_id: int
+    query: str
+    expected_document: str
+    hit: bool
+    rank: int
+    top_results: list[dict] = Field(default_factory=list)
+
+
+class EvalRunResponse(BaseModel):
+    run_id: int
+    case_count: int
+    hit_count: int
+    hit_rate: float
+    results: list[EvalResultRead] = Field(default_factory=list)

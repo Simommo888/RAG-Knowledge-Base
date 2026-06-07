@@ -9,6 +9,7 @@ from app.models import RagChunk, RagEmbedding
 from app.services.chroma_store import query_vectors
 from app.services.embeddings import cosine_similarity, embed_text, vector_from_json
 from app.services.query_expansion import QueryVariant, expand_query
+from app.services.rerankers import rerank_results
 from app.services.scanner import category_prefix
 
 
@@ -247,7 +248,10 @@ def search(
         scored.append((score, chunk, keyword_score, vector_score, matched_query))
 
     scored.sort(key=lambda item: item[0], reverse=True)
-    return [
+    results = [
         _to_result(chunk, score, keyword_score, vector_score, matched_query, expanded_queries)
         for score, chunk, keyword_score, vector_score, matched_query in scored[:top_k]
     ]
+    if rerank_enabled and settings.rerank_strategy in {"llm", "cross_encoder"}:
+        results = rerank_results(query, results, settings.rerank_strategy)[:top_k]
+    return results
